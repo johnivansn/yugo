@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/constants/app_constants.dart';
+import 'core/constants/storage_keys.dart';
 import 'data/models/habit_model.dart';
 import 'data/models/validator_model.dart';
 import 'data/models/penalty_model.dart';
@@ -28,21 +29,18 @@ Future<void> _initHive() async {
 
   _registerTypeAdapters();
 
-  await Hive.openBox(AppConstants.hiveBoxSettings);
+  await _openBoxes();
 }
 
 void _registerTypeAdapters() {
   Hive.registerAdapter(HabitModelAdapter());
   Hive.registerAdapter(HabitStatusModelAdapter());
   Hive.registerAdapter(HabitStatusAdapter());
-
   Hive.registerAdapter(ValidatorModelAdapter());
   Hive.registerAdapter(ValidatorTypeAdapter());
-
   Hive.registerAdapter(PenaltyModelAdapter());
   Hive.registerAdapter(PenaltyTypeAdapter());
   Hive.registerAdapter(PenaltyExecutionStatusAdapter());
-
   Hive.registerAdapter(MacroModelAdapter());
   Hive.registerAdapter(MacroEventAdapter());
   Hive.registerAdapter(EventTypeAdapter());
@@ -50,13 +48,30 @@ void _registerTypeAdapters() {
   Hive.registerAdapter(ConditionTypeAdapter());
   Hive.registerAdapter(MacroActionAdapter());
   Hive.registerAdapter(ActionTypeAdapter());
-
   Hive.registerAdapter(StreakModelAdapter());
   Hive.registerAdapter(StreakDayStatusAdapter());
-
   Hive.registerAdapter(ExecutionLogModelAdapter());
   Hive.registerAdapter(LogTypeAdapter());
   Hive.registerAdapter(LogLevelAdapter());
+}
+
+Future<void> _openBoxes() async {
+  try {
+    await Hive.openBox(AppConstants.hiveBoxSettings);
+    await Hive.openBox<HabitModel>(StorageKeys.habitsBox);
+    await Hive.openBox<ValidatorModel>(StorageKeys.validatorsBox);
+    await Hive.openBox<PenaltyModel>(StorageKeys.penaltiesBox);
+    await Hive.openBox<MacroModel>(StorageKeys.macrosBox);
+    await Hive.openBox<StreakModel>(StorageKeys.streaksBox);
+    await Hive.openBox<ExecutionLogModel>(StorageKeys.executionLogsBox);
+    await Hive.openBox<HabitStatusModel>(StorageKeys.habitStatusBox);
+    await Hive.openBox<PenaltyExecutionModel>(StorageKeys.penaltyExecutionsBox);
+
+    print('All Hive boxes opened successfully');
+  } catch (e) {
+    print('Error opening Hive boxes: $e');
+    rethrow;
+  }
 }
 
 class YugoApp extends StatelessWidget {
