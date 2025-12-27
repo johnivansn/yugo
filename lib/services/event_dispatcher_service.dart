@@ -36,7 +36,7 @@ class EventDispatcherService {
     try {
       final result = await macroRepository.getMacrosByPriority();
 
-      result.fold(
+      await result.fold(
         (failure) {
           print('Error al obtener macros: ${failure.message}');
         },
