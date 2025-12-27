@@ -3,6 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/constants/app_constants.dart';
+import 'data/models/habit_model.dart';
+import 'data/models/validator_model.dart';
+import 'data/models/penalty_model.dart';
+import 'data/models/macro_model.dart';
+import 'data/models/streak_model.dart';
+import 'data/models/execution_log_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,8 +26,37 @@ void main() async {
 Future<void> _initHive() async {
   await Hive.initFlutter();
 
-  await Hive.openBox(AppConstants.hiveBoxSettings);
+  _registerTypeAdapters();
 
+  await Hive.openBox(AppConstants.hiveBoxSettings);
+}
+
+void _registerTypeAdapters() {
+  Hive.registerAdapter(HabitModelAdapter());
+  Hive.registerAdapter(HabitStatusModelAdapter());
+  Hive.registerAdapter(HabitStatusAdapter());
+
+  Hive.registerAdapter(ValidatorModelAdapter());
+  Hive.registerAdapter(ValidatorTypeAdapter());
+
+  Hive.registerAdapter(PenaltyModelAdapter());
+  Hive.registerAdapter(PenaltyTypeAdapter());
+  Hive.registerAdapter(PenaltyExecutionStatusAdapter());
+
+  Hive.registerAdapter(MacroModelAdapter());
+  Hive.registerAdapter(MacroEventAdapter());
+  Hive.registerAdapter(EventTypeAdapter());
+  Hive.registerAdapter(MacroConditionAdapter());
+  Hive.registerAdapter(ConditionTypeAdapter());
+  Hive.registerAdapter(MacroActionAdapter());
+  Hive.registerAdapter(ActionTypeAdapter());
+
+  Hive.registerAdapter(StreakModelAdapter());
+  Hive.registerAdapter(StreakDayStatusAdapter());
+
+  Hive.registerAdapter(ExecutionLogModelAdapter());
+  Hive.registerAdapter(LogTypeAdapter());
+  Hive.registerAdapter(LogLevelAdapter());
 }
 
 class YugoApp extends StatelessWidget {
@@ -79,7 +114,9 @@ class HomePage extends StatelessWidget {
             Text(
               'Versión ${AppConstants.appVersion}',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface..withValues(alpha: 0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 32),
@@ -94,7 +131,6 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 48),
             ElevatedButton.icon(
               onPressed: () {
-                // Placeholder - navegación en Fase 3
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Funcionalidad en desarrollo...'),
