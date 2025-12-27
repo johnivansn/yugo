@@ -5,31 +5,23 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'core/constants/app_constants.dart';
 
 void main() async {
-  // Asegurar inicialización de Flutter
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Configurar orientación (solo portrait por ahora)
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Inicializar Hive
   await _initHive();
 
-  // Ejecutar app
   runApp(const YugoApp());
 }
 
-/// Inicializa Hive para persistencia local
 Future<void> _initHive() async {
   await Hive.initFlutter();
 
-  // Abrir boxes principales (vacíos por ahora)
   await Hive.openBox(AppConstants.hiveBoxSettings);
 
-  // Los demás boxes se abrirán cuando se registren los adapters
-  // en fases posteriores
 }
 
 class YugoApp extends StatelessWidget {
@@ -60,7 +52,6 @@ class YugoApp extends StatelessWidget {
   }
 }
 
-/// Página principal temporal (será reemplazada en Fase 3)
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
