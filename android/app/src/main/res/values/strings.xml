@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yugo</string>
+    <string name="accessibility_service_description">
+        Servicio de accesibilidad para automatización de hábitos.
+        Permite ejecutar acciones automáticas según tus reglas configuradas.
+    </string>
+    <string name="foreground_service_notification_title">Yugo está activo</string>
+    <string name="foreground_service_notification_content">
+        Sistema de automatización de hábitos ejecutándose
+    </string>
+</resources>
