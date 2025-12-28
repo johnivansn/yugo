@@ -12,6 +12,9 @@ import 'data/models/macro_model.dart';
 import 'data/models/streak_model.dart';
 import 'data/models/execution_log_model.dart';
 
+import 'services/foreground_service_manager.dart';
+import 'services/battery_optimization_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,6 +24,7 @@ void main() async {
   ]);
 
   await _initHive();
+  await _initServices();
 
   runApp(const YugoApp());
 }
@@ -72,6 +76,27 @@ Future<void> _openBoxes() async {
   } catch (e) {
     print('Error opening Hive boxes: $e');
     rethrow;
+  }
+}
+
+Future<void> _initServices() async {
+  try {
+    print('Initializing services...');
+
+    final serviceManager = ForegroundServiceManager();
+    await serviceManager.ensureServiceRunning();
+
+    final batteryService = BatteryOptimizationService();
+    final status = await batteryService.checkAndRequest();
+
+    if (status == BatteryOptimizationStatus.enabled) {
+      print('Battery optimization is enabled - service may be killed');
+      print('ℹUser should disable it in Settings for best performance');
+    }
+
+    print('Services initialized');
+  } catch (e) {
+    print('Error initializing services: $e');
   }
 }
 
