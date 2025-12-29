@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:yugo/services/event_dispatcher_service.dart';
 import 'package:yugo/services/test_data_helper.dart';
 
 import 'core/constants/app_constants.dart';
@@ -164,6 +165,8 @@ class _HomePageState extends State<HomePage> {
   bool _engineStatus = false;
   bool _isLoadingTestData = false;
   String? _testDataMessage;
+  bool _isEmittingEvent = false;
+  String? _eventMessage;
 
   @override
   void initState() {
@@ -186,31 +189,26 @@ class _HomePageState extends State<HomePage> {
     try {
       final testData = TestDataHelper.createFullTestDataSet();
 
-      // Guardar validadores
       for (final validator in testData.validators) {
         final box = Hive.box<ValidatorModel>(StorageKeys.validatorsBox);
         await box.put(validator.id, validator);
       }
 
-      // Guardar hábitos
       for (final habit in testData.habits) {
         final box = Hive.box<HabitModel>(StorageKeys.habitsBox);
         await box.put(habit.id, habit);
       }
 
-      // Guardar penalizaciones
       for (final penalty in testData.penalties) {
         final box = Hive.box<PenaltyModel>(StorageKeys.penaltiesBox);
         await box.put(penalty.id, penalty);
       }
 
-      // Guardar rachas
       for (final streak in testData.streaks) {
         final box = Hive.box<StreakModel>(StorageKeys.streaksBox);
         await box.put(streak.id, streak);
       }
 
-      // Guardar macros
       for (final macro in testData.macros) {
         final box = Hive.box<MacroModel>(StorageKeys.macrosBox);
         await box.put(macro.id, macro);
@@ -252,6 +250,116 @@ class _HomePageState extends State<HomePage> {
     } finally {
       setState(() {
         _isLoadingTestData = false;
+      });
+    }
+  }
+
+  Future<void> _emitTestEvent(EventType eventType) async {
+    if (!_engineStatus) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Motor no está inicializado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isEmittingEvent = true;
+      _eventMessage = null;
+    });
+
+    try {
+      final dispatcher = MacroEngineService.instance.eventDispatcher;
+      final habits = Hive.box<HabitModel>(StorageKeys.habitsBox);
+
+      if (habits.isEmpty) {
+        setState(() {
+          _eventMessage =
+              '⚠️ No hay hábitos creados\nCrea datos de prueba primero';
+        });
+        return;
+      }
+
+      final firstHabit = habits.values.first;
+
+      switch (eventType) {
+        case EventType.habitCompleted:
+          dispatcher.emitHabitEvent(
+            HabitEvent(
+              type: EventType.habitCompleted,
+              habitId: firstHabit.id,
+              data: {
+                'completed_at': DateTime.now().toIso8601String(),
+                'source': 'manual_test',
+              },
+            ),
+          );
+          break;
+
+        case EventType.habitFailed:
+          dispatcher.emitHabitEvent(
+            HabitEvent(
+              type: EventType.habitFailed,
+              habitId: firstHabit.id,
+              data: {
+                'failed_at': DateTime.now().toIso8601String(),
+                'reason': 'test_failure',
+              },
+            ),
+          );
+          break;
+
+        case EventType.habitStarted:
+          dispatcher.emitHabitEvent(
+            HabitEvent(
+              type: EventType.habitStarted,
+              habitId: firstHabit.id,
+              data: {'started_at': DateTime.now().toIso8601String()},
+            ),
+          );
+          break;
+
+        default:
+          dispatcher.emitSystemEvent(
+            SystemEvent(
+              type: eventType,
+              data: {'triggered_at': DateTime.now().toIso8601String()},
+            ),
+          );
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      setState(() {
+        _eventMessage =
+            '✅ Evento emitido: ${eventType.name}\n'
+            'Hábito: ${firstHabit.name}\n'
+            'Revisa los logs para ver la ejecución';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🚀 Evento ${eventType.name} emitido'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _eventMessage = '❌ Error al emitir evento: $e';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() {
+        _isEmittingEvent = false;
       });
     }
   }
@@ -332,17 +440,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 32),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  AppConstants.appDescription,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
-              const SizedBox(height: 48),
 
-              // NUEVO: Botón para crear datos de prueba
+              // Botón crear datos
               ElevatedButton.icon(
                 onPressed: _isLoadingTestData ? null : _createTestData,
                 icon: _isLoadingTestData
@@ -365,9 +464,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              if (_testDataMessage != null)
+              if (_testDataMessage != null) ...[
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
                   margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -392,27 +490,113 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+              ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 16),
 
-              ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Funcionalidad en desarrollo...'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.rocket_launch),
-                label: const Text('Comenzar'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
+              // SECCIÓN DE TEST DE EVENTOS
+              Text(
+                'Emitir Eventos de Prueba',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Prueba el dispatcher emitiendo eventos manualmente',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
+              const SizedBox(height: 24),
+
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isEmittingEvent
+                        ? null
+                        : () => _emitTestEvent(EventType.habitCompleted),
+                    icon: const Icon(Icons.check_circle, size: 20),
+                    label: const Text('Hábito\nCompletado'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _isEmittingEvent
+                        ? null
+                        : () => _emitTestEvent(EventType.habitFailed),
+                    icon: const Icon(Icons.cancel, size: 20),
+                    label: const Text('Hábito\nFallido'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _isEmittingEvent
+                        ? null
+                        : () => _emitTestEvent(EventType.habitStarted),
+                    icon: const Icon(Icons.play_arrow, size: 20),
+                    label: const Text('Hábito\nIniciado'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (_eventMessage != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: _eventMessage!.startsWith('✅')
+                        ? Colors.blue.withValues(alpha: 0.1)
+                        : Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _eventMessage!.startsWith('✅')
+                          ? Colors.blue
+                          : Colors.orange,
+                    ),
+                  ),
+                  child: Text(
+                    _eventMessage!,
+                    style: TextStyle(
+                      color: _eventMessage!.startsWith('✅')
+                          ? Colors.blue.shade700
+                          : Colors.orange.shade700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
             ],
           ),
         ),
