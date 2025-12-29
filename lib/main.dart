@@ -11,9 +11,12 @@ import 'data/models/penalty_model.dart';
 import 'data/models/macro_model.dart';
 import 'data/models/streak_model.dart';
 import 'data/models/execution_log_model.dart';
+import 'data/datasources/local/macro_local_datasource.dart';
+import 'data/datasources/local/log_local_datasource.dart';
 
 import 'services/foreground_service_manager.dart';
 import 'services/battery_optimization_service.dart';
+import 'services/macro_engine_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,31 +75,52 @@ Future<void> _openBoxes() async {
     await Hive.openBox<HabitStatusModel>(StorageKeys.habitStatusBox);
     await Hive.openBox<PenaltyExecutionModel>(StorageKeys.penaltyExecutionsBox);
 
-    print('All Hive boxes opened successfully');
+    print('✅ All Hive boxes opened successfully');
   } catch (e) {
-    print('Error opening Hive boxes: $e');
+    print('❌ Error opening Hive boxes: $e');
     rethrow;
   }
 }
 
 Future<void> _initServices() async {
   try {
-    print('Initializing services...');
-
+    print('🚀 Initializing services...');
+    await _initMacroEngine();
     final serviceManager = ForegroundServiceManager();
     await serviceManager.ensureServiceRunning();
-
     final batteryService = BatteryOptimizationService();
     final status = await batteryService.checkAndRequest();
 
     if (status == BatteryOptimizationStatus.enabled) {
-      print('Battery optimization is enabled - service may be killed');
-      print('ℹUser should disable it in Settings for best performance');
+      print('⚠️ Battery optimization is enabled - service may be killed');
+      print('ℹ️  User should disable it in Settings for best performance');
     }
 
-    print('Services initialized');
+    print('✅ Services initialized');
   } catch (e) {
-    print('Error initializing services: $e');
+    print('❌ Error initializing services: $e');
+  }
+}
+
+Future<void> _initMacroEngine() async {
+  try {
+    print('🚀 Initializing MacroEngine...');
+
+    final macroDataSource = MacroLocalDataSourceImpl();
+    await macroDataSource.init();
+
+    final logDataSource = LogLocalDataSourceImpl();
+    await logDataSource.init();
+
+    await MacroEngineService.instance.initialize(
+      macroDataSource: macroDataSource,
+      logDataSource: logDataSource,
+    );
+
+    print('✅ MacroEngine initialized successfully');
+  } catch (e) {
+    print('❌ Error initializing MacroEngine: $e');
+    rethrow;
   }
 }
 
@@ -128,13 +152,45 @@ class YugoApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool _engineStatus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkEngineStatus();
+  }
+
+  void _checkEngineStatus() {
+    setState(() {
+      _engineStatus = MacroEngineService.instance.isInitialized;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Yugo'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Yugo'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              _engineStatus ? Icons.check_circle : Icons.error,
+              color: _engineStatus ? Colors.green : Colors.red,
+            ),
+            onPressed: _checkEngineStatus,
+            tooltip: _engineStatus ? 'Motor activo' : 'Motor inactivo',
+          ),
+        ],
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -158,6 +214,34 @@ class HomePage extends StatelessWidget {
                 color: Theme.of(
                   context,
                 ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: _engineStatus
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _engineStatus ? Icons.check_circle : Icons.error,
+                    color: _engineStatus ? Colors.green : Colors.red,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _engineStatus ? 'Motor activo' : 'Motor inactivo',
+                    style: TextStyle(
+                      color: _engineStatus ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
