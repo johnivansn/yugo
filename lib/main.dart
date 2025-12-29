@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:yugo/presentation/screens/logs/logs_screen.dart';
 import 'package:yugo/services/event_dispatcher_service.dart';
 import 'package:yugo/services/test_data_helper.dart';
 
@@ -461,6 +462,24 @@ class _HomePageState extends State<HomePage> {
                   ),
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Botón para ver logs
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LogsScreen()),
+                  );
+                },
+                icon: const Icon(Icons.description),
+                label: const Text('Ver Logs de Ejecución'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
                 ),
               ),
 
