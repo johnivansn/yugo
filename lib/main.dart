@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:yugo/presentation/screens/logs/logs_screen.dart';
+import 'package:yugo/presentation/screens/macros/macro_list_screen.dart';
 import 'package:yugo/services/event_dispatcher_service.dart';
 import 'package:yugo/services/test_data_helper.dart';
 
@@ -465,6 +466,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 16),
+              
               // Botón para ver logs
               OutlinedButton.icon(
                 onPressed: () {
@@ -475,6 +477,27 @@ class _HomePageState extends State<HomePage> {
                 },
                 icon: const Icon(Icons.description),
                 label: const Text('Ver Logs de Ejecución'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Botón para ver macros
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MacroListScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.dashboard_customize),
+                label: const Text('Ver Macros'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
