@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:yugo/services/test_data_helper.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/constants/storage_keys.dart';
@@ -161,6 +162,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool _engineStatus = false;
+  bool _isLoadingTestData = false;
+  String? _testDataMessage;
 
   @override
   void initState() {
@@ -172,6 +175,85 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _engineStatus = MacroEngineService.instance.isInitialized;
     });
+  }
+
+  Future<void> _createTestData() async {
+    setState(() {
+      _isLoadingTestData = true;
+      _testDataMessage = null;
+    });
+
+    try {
+      final testData = TestDataHelper.createFullTestDataSet();
+
+      // Guardar validadores
+      for (final validator in testData.validators) {
+        final box = Hive.box<ValidatorModel>(StorageKeys.validatorsBox);
+        await box.put(validator.id, validator);
+      }
+
+      // Guardar hábitos
+      for (final habit in testData.habits) {
+        final box = Hive.box<HabitModel>(StorageKeys.habitsBox);
+        await box.put(habit.id, habit);
+      }
+
+      // Guardar penalizaciones
+      for (final penalty in testData.penalties) {
+        final box = Hive.box<PenaltyModel>(StorageKeys.penaltiesBox);
+        await box.put(penalty.id, penalty);
+      }
+
+      // Guardar rachas
+      for (final streak in testData.streaks) {
+        final box = Hive.box<StreakModel>(StorageKeys.streaksBox);
+        await box.put(streak.id, streak);
+      }
+
+      // Guardar macros
+      for (final macro in testData.macros) {
+        final box = Hive.box<MacroModel>(StorageKeys.macrosBox);
+        await box.put(macro.id, macro);
+      }
+
+      setState(() {
+        _testDataMessage =
+            '✅ ${testData.totalItems} elementos creados:\n'
+            '• ${testData.validators.length} validadores\n'
+            '• ${testData.habits.length} hábitos\n'
+            '• ${testData.penalties.length} penalizaciones\n'
+            '• ${testData.streaks.length} rachas\n'
+            '• ${testData.macros.length} macros';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Datos de prueba creados correctamente'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _testDataMessage = '❌ Error: $e';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al crear datos: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoadingTestData = false;
+      });
+    }
   }
 
   @override
@@ -192,87 +274,147 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.psychology_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              AppConstants.appName,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Versión ${AppConstants.appVersion}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.psychology_outlined,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _engineStatus
-                    ? Colors.green.withValues(alpha: 0.1)
-                    : Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _engineStatus ? Icons.check_circle : Icons.error,
-                    color: _engineStatus ? Colors.green : Colors.red,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _engineStatus ? 'Motor activo' : 'Motor inactivo',
-                    style: TextStyle(
-                      color: _engineStatus ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 48),
-              child: Text(
-                AppConstants.appDescription,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-            const SizedBox(height: 48),
-            ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Funcionalidad en desarrollo...'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.rocket_launch),
-              label: const Text('Comenzar'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
+              const SizedBox(height: 24),
+              Text(
+                AppConstants.appName,
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Versión ${AppConstants.appVersion}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: _engineStatus
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _engineStatus ? Icons.check_circle : Icons.error,
+                      color: _engineStatus ? Colors.green : Colors.red,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _engineStatus ? 'Motor activo' : 'Motor inactivo',
+                      style: TextStyle(
+                        color: _engineStatus ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  AppConstants.appDescription,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: 48),
+
+              // NUEVO: Botón para crear datos de prueba
+              ElevatedButton.icon(
+                onPressed: _isLoadingTestData ? null : _createTestData,
+                icon: _isLoadingTestData
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.science),
+                label: Text(
+                  _isLoadingTestData ? 'Creando...' : 'Crear Datos de Prueba',
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              if (_testDataMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: _testDataMessage!.startsWith('✅')
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _testDataMessage!.startsWith('✅')
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                  child: Text(
+                    _testDataMessage!,
+                    style: TextStyle(
+                      color: _testDataMessage!.startsWith('✅')
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 24),
+
+              ElevatedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Funcionalidad en desarrollo...'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.rocket_launch),
+                label: const Text('Comenzar'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
