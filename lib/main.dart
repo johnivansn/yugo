@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:yugo/presentation/screens/habits/habit_list_screen.dart';
 import 'package:yugo/presentation/screens/logs/logs_screen.dart';
 import 'package:yugo/presentation/screens/macros/macro_list_screen.dart';
+import 'package:yugo/presentation/screens/penalties/penalty_list_screen.dart';
 import 'package:yugo/services/event_dispatcher_service.dart';
 import 'package:yugo/services/test_data_helper.dart';
 
@@ -527,6 +528,28 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+
+              // Botón para ver penalizaciones
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PenaltyListScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.warning_amber),
+                label: const Text('Ver Penalizaciones'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+
               if (_testDataMessage != null) ...[
                 const SizedBox(height: 16),
                 Container(
