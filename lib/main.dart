@@ -5,6 +5,7 @@ import 'package:yugo/presentation/screens/habits/habit_list_screen.dart';
 import 'package:yugo/presentation/screens/logs/logs_screen.dart';
 import 'package:yugo/presentation/screens/macros/macro_list_screen.dart';
 import 'package:yugo/presentation/screens/penalties/penalty_list_screen.dart';
+import 'package:yugo/presentation/screens/streaks/streak_list_screen.dart';
 import 'package:yugo/services/event_dispatcher_service.dart';
 import 'package:yugo/services/test_data_helper.dart';
 
@@ -564,6 +565,28 @@ class _HomePageState extends State<HomePage> {
                 },
                 icon: const Icon(Icons.verified_user),
                 label: const Text('Ver Validadores'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Botón para ver rachas
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StreakListScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.local_fire_department),
+                label: const Text('Ver Rachas'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
