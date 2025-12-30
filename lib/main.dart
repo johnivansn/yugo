@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:yugo/presentation/screens/habits/habit_list_screen.dart';
 import 'package:yugo/presentation/screens/logs/logs_screen.dart';
 import 'package:yugo/presentation/screens/macros/macro_list_screen.dart';
 import 'package:yugo/services/event_dispatcher_service.dart';
@@ -466,7 +467,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Botón para ver logs
               OutlinedButton.icon(
                 onPressed: () {
@@ -505,7 +506,27 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
 
+              // Botón para ver hábitos
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HabitListScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.task_alt),
+                label: const Text('Ver Hábitos'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
               if (_testDataMessage != null) ...[
                 const SizedBox(height: 16),
                 Container(
