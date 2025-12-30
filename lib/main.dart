@@ -20,6 +20,7 @@ import 'data/models/execution_log_model.dart';
 import 'data/datasources/local/macro_local_datasource.dart';
 import 'data/datasources/local/log_local_datasource.dart';
 
+import 'presentation/screens/validators/validator_list_screen.dart';
 import 'services/foreground_service_manager.dart';
 import 'services/battery_optimization_service.dart';
 import 'services/macro_engine_service.dart';
@@ -542,6 +543,27 @@ class _HomePageState extends State<HomePage> {
                 },
                 icon: const Icon(Icons.warning_amber),
                 label: const Text('Ver Penalizaciones'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Botón para ver validadores
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ValidatorListScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.verified_user),
+                label: const Text('Ver Validadores'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,

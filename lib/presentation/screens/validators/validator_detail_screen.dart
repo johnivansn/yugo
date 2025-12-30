@@ -2,26 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 import '../../../core/constants/storage_keys.dart';
-import '../../../data/models/penalty_model.dart';
+import '../../../data/models/validator_model.dart';
 import '../../../data/models/habit_model.dart';
 
-class PenaltyDetailScreen extends StatelessWidget {
-  final PenaltyModel penalty;
+class ValidatorDetailScreen extends StatelessWidget {
+  final ValidatorModel validator;
 
-  const PenaltyDetailScreen({super.key, required this.penalty});
+  const ValidatorDetailScreen({super.key, required this.validator});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalle de Penalización'),
+        title: const Text('Detalle de Validador'),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Editar penalización - En desarrollo'),
+                  content: Text('Editar validador - En desarrollo'),
                 ),
               );
             },
@@ -47,16 +47,16 @@ class PenaltyDetailScreen extends StatelessWidget {
             const SizedBox(height: 16),
             _buildAssociatedHabitsCard(context),
             const SizedBox(height: 16),
-            _buildExecutionHistoryCard(context),
+            _buildUsageGuideCard(context),
             const SizedBox(height: 80),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _toggleActive(context),
-        icon: Icon(penalty.isActive ? Icons.pause : Icons.play_arrow),
-        label: Text(penalty.isActive ? 'Desactivar' : 'Activar'),
-        backgroundColor: penalty.isActive ? Colors.orange : Colors.green,
+        icon: Icon(validator.isActive ? Icons.pause : Icons.play_arrow),
+        label: Text(validator.isActive ? 'Desactivar' : 'Activar'),
+        backgroundColor: validator.isActive ? Colors.orange : Colors.green,
       ),
     );
   }
@@ -67,20 +67,22 @@ class PenaltyDetailScreen extends StatelessWidget {
       children: [
         Row(
           children: [
+            Icon(_getTypeIcon(validator.type), size: 32, color: Colors.blue),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                penalty.name,
+                validator.name,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            _buildStatusBadge(penalty.isActive),
+            _buildStatusBadge(validator.isActive),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          penalty.description,
+          validator.description,
           style: Theme.of(
             context,
           ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade700),
@@ -103,33 +105,17 @@ class PenaltyDetailScreen extends StatelessWidget {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            _buildInfoRow(Icons.fingerprint, 'ID', penalty.id),
-            _buildInfoRow(Icons.category, 'Tipo', penalty.type.name),
-            _buildInfoRow(
-              Icons.local_fire_department,
-              'Intensidad',
-              _getIntensityLabel(penalty.intensity),
-            ),
-            if (penalty.durationMinutes != null)
-              _buildInfoRow(
-                Icons.timer,
-                'Duración',
-                '${penalty.durationMinutes} minutos',
-              ),
-            _buildInfoRow(
-              Icons.undo,
-              'Revertible',
-              penalty.isRevertible ? 'Sí' : 'No',
-            ),
+            _buildInfoRow(Icons.fingerprint, 'ID', validator.id),
+            _buildInfoRow(Icons.category, 'Tipo', validator.type.name),
             _buildInfoRow(
               Icons.edit,
-              'Tipo',
-              penalty.isCustom ? 'Personalizada' : 'Predefinida',
+              'Origen',
+              validator.isCustom ? 'Personalizado' : 'Predefinido',
             ),
             _buildInfoRow(
               Icons.calendar_today,
-              'Creada',
-              _formatDate(penalty.createdAt),
+              'Creado',
+              _formatDate(validator.createdAt),
             ),
           ],
         ),
@@ -146,7 +132,7 @@ class PenaltyDetailScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.settings, color: Colors.purple),
+                const Icon(Icons.settings, color: Colors.blue),
                 const SizedBox(width: 8),
                 Text(
                   'Configuración',
@@ -157,7 +143,7 @@ class PenaltyDetailScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (penalty.config.isEmpty)
+            if (validator.config.isEmpty)
               Text(
                 'Sin configuración adicional',
                 style: TextStyle(
@@ -170,46 +156,46 @@ class PenaltyDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.05),
+                  color: Colors.blue.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.purple.withValues(alpha: 0.3),
-                  ),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: penalty.config.entries.map((entry) {
+                  children: validator.config.entries.map((entry) {
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.arrow_right,
-                            size: 20,
-                            color: Colors.purple,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.arrow_right,
+                                size: 20,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
                                   entry.key,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  entry.value.toString(),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                              ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 28),
+                            child: Text(
+                              entry.value.toString(),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade700,
+                              ),
                             ),
                           ),
                         ],
@@ -218,34 +204,51 @@ class PenaltyDetailScreen extends StatelessWidget {
                   }).toList(),
                 ),
               ),
-            if (penalty.targetApps.isNotEmpty) ...[
+            if (validator.metadata.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.apps, size: 20, color: Colors.teal),
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 8),
                   Text(
-                    'Apps objetivo (${penalty.targetApps.length})',
-                    style: const TextStyle(
+                    'Metadata',
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
+                      color: Colors.grey.shade700,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: penalty.targetApps.map((app) {
-                  return Chip(
-                    label: Text(app),
-                    avatar: const Icon(Icons.android, size: 16),
-                  );
-                }).toList(),
-              ),
+              ...validator.metadata.entries.map((entry) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        '• ${entry.key}: ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          entry.value.toString(),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ],
         ),
@@ -256,7 +259,7 @@ class PenaltyDetailScreen extends StatelessWidget {
   Widget _buildAssociatedHabitsCard(BuildContext context) {
     final habitsBox = Hive.box<HabitModel>(StorageKeys.habitsBox);
     final associatedHabits = habitsBox.values
-        .where((habit) => habit.penaltyIds.contains(penalty.id))
+        .where((habit) => habit.validatorId == validator.id)
         .toList();
 
     return Card(
@@ -267,10 +270,10 @@ class PenaltyDetailScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.task_alt, color: Colors.blue),
+                const Icon(Icons.task_alt, color: Colors.green),
                 const SizedBox(width: 8),
                 Text(
-                  'Hábitos Asociados',
+                  'Hábitos que usan este validador',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -282,13 +285,13 @@ class PenaltyDetailScreen extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${associatedHabits.length}',
                     style: const TextStyle(
-                      color: Colors.blue,
+                      color: Colors.green,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -298,7 +301,7 @@ class PenaltyDetailScreen extends StatelessWidget {
             const SizedBox(height: 12),
             if (associatedHabits.isEmpty)
               Text(
-                'No está asignada a ningún hábito',
+                'No está asignado a ningún hábito',
                 style: TextStyle(
                   color: Colors.grey.shade600,
                   fontStyle: FontStyle.italic,
@@ -309,12 +312,12 @@ class PenaltyDetailScreen extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.05),
+                      color: Colors.green.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: Colors.blue.withValues(alpha: 0.3),
+                        color: Colors.green.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -338,28 +341,23 @@ class PenaltyDetailScreen extends StatelessWidget {
                                   fontSize: 14,
                                 ),
                               ),
-                              if (habit.autoExecutePenalties)
-                                const SizedBox(height: 2),
-                              if (habit.autoExecutePenalties)
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.bolt,
-                                      size: 12,
-                                      color: Colors.orange,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Ejecución automática',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.orange.shade700,
-                                      ),
-                                    ),
-                                  ],
+                              if (habit.validatorConfig.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Config: ${habit.validatorConfig.keys.join(", ")}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
                                 ),
+                              ],
                             ],
                           ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey.shade400,
                         ),
                       ],
                     ),
@@ -372,15 +370,8 @@ class PenaltyDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExecutionHistoryCard(BuildContext context) {
-    final executionsBox = Hive.box<PenaltyExecutionModel>(
-      StorageKeys.penaltyExecutionsBox,
-    );
-    final executions =
-        executionsBox.values
-            .where((exec) => exec.penaltyId == penalty.id)
-            .toList()
-          ..sort((a, b) => b.executedAt.compareTo(a.executedAt));
+  Widget _buildUsageGuideCard(BuildContext context) {
+    final guide = _getUsageGuide(validator.type);
 
     return Card(
       child: Padding(
@@ -390,145 +381,77 @@ class PenaltyDetailScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.history, color: Colors.deepPurple),
+                const Icon(Icons.help_outline, color: Colors.purple),
                 const SizedBox(width: 8),
                 Text(
-                  'Historial de Ejecución',
+                  'Guía de Uso',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${executions.length}',
-                    style: const TextStyle(
-                      color: Colors.deepPurple,
-                      fontWeight: FontWeight.bold,
-                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            if (executions.isEmpty)
-              Text(
-                'No se ha ejecutado aún',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontStyle: FontStyle.italic,
-                ),
-              )
-            else
-              ...executions.take(5).map((execution) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _buildExecutionTile(execution),
-                );
-              }),
-            if (executions.length > 5) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Ver historial completo - En desarrollo'),
-                      ),
-                    );
-                  },
-                  child: Text('Ver todas (${executions.length})'),
-                ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.purple.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
               ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExecutionTile(PenaltyExecutionModel execution) {
-    IconData icon;
-    Color color;
-
-    switch (execution.status) {
-      case PenaltyExecutionStatus.executed:
-        icon = Icons.check_circle;
-        color = Colors.green;
-        break;
-      case PenaltyExecutionStatus.failed:
-        icon = Icons.error;
-        color = Colors.red;
-        break;
-      case PenaltyExecutionStatus.reverted:
-        icon = Icons.undo;
-        color = Colors.blue;
-        break;
-      case PenaltyExecutionStatus.executing:
-        icon = Icons.pending;
-        color = Colors.orange;
-        break;
-      default:
-        icon = Icons.help;
-        color = Colors.grey;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  execution.status.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: color,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.info, size: 16, color: Colors.purple),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Descripción:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _formatDateTime(execution.executedAt),
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                ),
-                if (execution.revertedAt != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Revertida: ${_formatDateTime(execution.revertedAt!)}',
-                    style: TextStyle(fontSize: 11, color: Colors.blue.shade700),
-                  ),
-                ],
-                if (execution.errorMessage != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Error: ${execution.errorMessage}',
-                    style: TextStyle(fontSize: 11, color: Colors.red.shade700),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    guide['description']!,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.lightbulb_outline,
+                        size: 16,
+                        color: Colors.purple,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Ejemplo de uso:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    guide['example']!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -541,7 +464,7 @@ class PenaltyDetailScreen extends StatelessWidget {
           Icon(icon, size: 18, color: Colors.grey.shade600),
           const SizedBox(width: 12),
           SizedBox(
-            width: 100,
+            width: 80,
             child: Text(
               label,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
@@ -581,7 +504,7 @@ class PenaltyDetailScreen extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            isActive ? 'ACTIVA' : 'INACTIVA',
+            isActive ? 'ACTIVO' : 'INACTIVO',
             style: TextStyle(
               color: isActive ? Colors.green : Colors.grey,
               fontSize: 12,
@@ -593,34 +516,102 @@ class PenaltyDetailScreen extends StatelessWidget {
     );
   }
 
-  String _getIntensityLabel(int intensity) {
-    if (intensity >= 4) return '$intensity - Muy Alta';
-    if (intensity >= 3) return '$intensity - Alta';
-    if (intensity >= 2) return '$intensity - Media';
-    return '$intensity - Baja';
+  IconData _getTypeIcon(ValidatorType type) {
+    switch (type) {
+      case ValidatorType.appUsage:
+        return Icons.phone_android;
+      case ValidatorType.deviceInactivity:
+        return Icons.bedtime;
+      case ValidatorType.location:
+        return Icons.location_on;
+      case ValidatorType.timeOfDay:
+        return Icons.schedule;
+      case ValidatorType.dataUsage:
+        return Icons.data_usage;
+      case ValidatorType.stepCount:
+        return Icons.directions_walk;
+      case ValidatorType.manual:
+        return Icons.touch_app;
+      case ValidatorType.custom:
+        return Icons.code;
+    }
+  }
+
+  Map<String, String> _getUsageGuide(ValidatorType type) {
+    switch (type) {
+      case ValidatorType.appUsage:
+        return {
+          'description':
+              'Valida que el usuario haya usado una aplicación específica durante un tiempo mínimo.',
+          'example':
+              'Hábito "Leer 30 minutos" → Validador: App Kindle abierta ≥ 30 min',
+        };
+      case ValidatorType.deviceInactivity:
+        return {
+          'description':
+              'Detecta cuando el dispositivo ha estado inactivo por un tiempo determinado.',
+          'example':
+              'Hábito "Descanso digital" → Validador: Dispositivo inactivo ≥ 2 horas',
+        };
+      case ValidatorType.location:
+        return {
+          'description':
+              'Valida que el usuario haya estado en una ubicación específica.',
+          'example':
+              'Hábito "Ir al gym" → Validador: Ubicación = Gimnasio (GPS)',
+        };
+      case ValidatorType.timeOfDay:
+        return {
+          'description':
+              'Verifica que una acción se haya realizado en un horario específico.',
+          'example':
+              'Hábito "Madrugar" → Validador: Acción realizada antes de las 7:00 AM',
+        };
+      case ValidatorType.dataUsage:
+        return {
+          'description': 'Valida el consumo de datos móviles o WiFi.',
+          'example':
+              'Hábito "Reducir datos móviles" → Validador: Consumo < 100 MB/día',
+        };
+      case ValidatorType.stepCount:
+        return {
+          'description':
+              'Valida que se haya alcanzado un número mínimo de pasos.',
+          'example': 'Hábito "Caminar 10k pasos" → Validador: Pasos ≥ 10,000',
+        };
+      case ValidatorType.manual:
+        return {
+          'description':
+              'El usuario marca manualmente cuando completa el hábito.',
+          'example': 'Hábito "Meditar" → Usuario marca manualmente al terminar',
+        };
+      case ValidatorType.custom:
+        return {
+          'description':
+              'Validador personalizado con lógica definida por el usuario.',
+          'example': 'Hábito personalizado con reglas específicas del usuario',
+        };
+    }
   }
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  String _formatDateTime(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} '
-        '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
   void _toggleActive(BuildContext context) {
-    final box = Hive.box<PenaltyModel>(StorageKeys.penaltiesBox);
-    final updatedPenalty = penalty.copyWith(isActive: !penalty.isActive);
-    box.put(penalty.id, updatedPenalty);
+    final box = Hive.box<ValidatorModel>(StorageKeys.validatorsBox);
+    final updatedValidator = validator.copyWith(isActive: !validator.isActive);
+    box.put(validator.id, updatedValidator);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          updatedPenalty.isActive
-              ? '✅ Penalización activada'
-              : '⏸️ Penalización desactivada',
+          updatedValidator.isActive
+              ? '✅ Validador activado'
+              : '⏸️ Validador desactivado',
         ),
-        backgroundColor: updatedPenalty.isActive ? Colors.green : Colors.orange,
+        backgroundColor: updatedValidator.isActive
+            ? Colors.green
+            : Colors.orange,
       ),
     );
 
@@ -628,12 +619,35 @@ class PenaltyDetailScreen extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
+    final habitsBox = Hive.box<HabitModel>(StorageKeys.habitsBox);
+    final habitsUsing = habitsBox.values
+        .where((habit) => habit.validatorId == validator.id)
+        .length;
+    if (habitsUsing > 0) {
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('No se puede eliminar'),
+          content: Text(
+            'Este validador está siendo usado por $habitsUsing hábito(s).\n\nPrimero debes reasignar o eliminar esos hábitos.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Penalización'),
+        title: const Text('Eliminar Validador'),
         content: Text(
-          '¿Estás seguro de que deseas eliminar "${penalty.name}"?\n\nEsta acción no se puede deshacer.',
+          '¿Estás seguro de que deseas eliminar "${validator.name}"?\n\nEsta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
@@ -648,14 +662,15 @@ class PenaltyDetailScreen extends StatelessWidget {
         ],
       ),
     );
+
     if (confirmed == true && context.mounted) {
-      final box = Hive.box<PenaltyModel>(StorageKeys.penaltiesBox);
-      await box.delete(penalty.id);
+      final box = Hive.box<ValidatorModel>(StorageKeys.validatorsBox);
+      await box.delete(validator.id);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Penalización eliminada correctamente'),
+            content: Text('✅ Validador eliminado correctamente'),
             backgroundColor: Colors.green,
           ),
         );
