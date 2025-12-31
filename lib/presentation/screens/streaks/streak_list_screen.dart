@@ -281,7 +281,7 @@ class _StreakListScreenState extends State<StreakListScreen> {
                   ),
                   _buildStatColumn(
                     'Total',
-                    '${streak.totalCompletions}/${total}',
+                    '${streak.totalCompletions}/$total',
                     Icons.calendar_today,
                     Colors.blue,
                   ),

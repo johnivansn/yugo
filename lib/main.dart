@@ -1,30 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:yugo/presentation/screens/habits/habit_list_screen.dart';
-import 'package:yugo/presentation/screens/logs/logs_screen.dart';
-import 'package:yugo/presentation/screens/macros/macro_list_screen.dart';
-import 'package:yugo/presentation/screens/penalties/penalty_list_screen.dart';
-import 'package:yugo/presentation/screens/streaks/streak_list_screen.dart';
-import 'package:yugo/services/event_dispatcher_service.dart';
-import 'package:yugo/services/test_data_helper.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/constants/storage_keys.dart';
 
-import 'data/models/habit_model.dart';
-import 'data/models/validator_model.dart';
-import 'data/models/penalty_model.dart';
-import 'data/models/macro_model.dart';
-import 'data/models/streak_model.dart';
-import 'data/models/execution_log_model.dart';
-import 'data/datasources/local/macro_local_datasource.dart';
 import 'data/datasources/local/log_local_datasource.dart';
+import 'data/datasources/local/macro_local_datasource.dart';
 
+import 'data/models/execution_log_model.dart';
+import 'data/models/habit_model.dart';
+import 'data/models/macro_model.dart';
+import 'data/models/penalty_model.dart';
+import 'data/models/streak_model.dart';
+import 'data/models/validator_model.dart';
+
+import 'presentation/screens/calendar/calendar_screen.dart';
+import 'presentation/screens/habits/habit_list_screen.dart';
+import 'presentation/screens/logs/logs_screen.dart';
+import 'presentation/screens/macros/macro_list_screen.dart';
+import 'presentation/screens/penalties/penalty_list_screen.dart';
+import 'presentation/screens/streaks/streak_list_screen.dart';
 import 'presentation/screens/validators/validator_list_screen.dart';
-import 'services/foreground_service_manager.dart';
+
 import 'services/battery_optimization_service.dart';
+import 'services/event_dispatcher_service.dart';
+import 'services/foreground_service_manager.dart';
 import 'services/macro_engine_service.dart';
+import 'services/test_data_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,26 +52,26 @@ Future<void> _initHive() async {
 }
 
 void _registerTypeAdapters() {
+  Hive.registerAdapter(ActionTypeAdapter());
+  Hive.registerAdapter(ConditionTypeAdapter());
+  Hive.registerAdapter(EventTypeAdapter());
+  Hive.registerAdapter(ExecutionLogModelAdapter());
   Hive.registerAdapter(HabitModelAdapter());
-  Hive.registerAdapter(HabitStatusModelAdapter());
   Hive.registerAdapter(HabitStatusAdapter());
-  Hive.registerAdapter(ValidatorModelAdapter());
-  Hive.registerAdapter(ValidatorTypeAdapter());
+  Hive.registerAdapter(HabitStatusModelAdapter());
+  Hive.registerAdapter(LogLevelAdapter());
+  Hive.registerAdapter(LogTypeAdapter());
+  Hive.registerAdapter(MacroActionAdapter());
+  Hive.registerAdapter(MacroConditionAdapter());
+  Hive.registerAdapter(MacroEventAdapter());
+  Hive.registerAdapter(MacroModelAdapter());
+  Hive.registerAdapter(PenaltyExecutionStatusAdapter());
   Hive.registerAdapter(PenaltyModelAdapter());
   Hive.registerAdapter(PenaltyTypeAdapter());
-  Hive.registerAdapter(PenaltyExecutionStatusAdapter());
-  Hive.registerAdapter(MacroModelAdapter());
-  Hive.registerAdapter(MacroEventAdapter());
-  Hive.registerAdapter(EventTypeAdapter());
-  Hive.registerAdapter(MacroConditionAdapter());
-  Hive.registerAdapter(ConditionTypeAdapter());
-  Hive.registerAdapter(MacroActionAdapter());
-  Hive.registerAdapter(ActionTypeAdapter());
-  Hive.registerAdapter(StreakModelAdapter());
   Hive.registerAdapter(StreakDayStatusAdapter());
-  Hive.registerAdapter(ExecutionLogModelAdapter());
-  Hive.registerAdapter(LogTypeAdapter());
-  Hive.registerAdapter(LogLevelAdapter());
+  Hive.registerAdapter(StreakModelAdapter());
+  Hive.registerAdapter(ValidatorModelAdapter());
+  Hive.registerAdapter(ValidatorTypeAdapter());
 }
 
 Future<void> _openBoxes() async {
@@ -587,6 +590,27 @@ class _HomePageState extends State<HomePage> {
                 },
                 icon: const Icon(Icons.local_fire_department),
                 label: const Text('Ver Rachas'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Botón para ver calendario
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CalendarScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.calendar_month),
+                label: const Text('Ver Calendario'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
