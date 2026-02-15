@@ -1,0 +1,33 @@
+name: yugo
+description: "Sistema de automatización de hábitos con penalizaciones inteligentes"
+publish_to: 'none'
+
+version: 0.2.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI & Icons
+  cupertino_icons: ^1.0.8
+  flutter_markdown: ^0.7.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icon_light.png
+    - assets/icon_dark.png
+    - assets/icon_light.svg
+    - assets/icon_dark.svg

@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/block_overlay_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="#F2000000"
+  android:clickable="true"
+  android:focusable="true">
+
+  <View
+    android:id="@+id/block_overlay_scrim"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#CC1a1a1a" />
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <LinearLayout
+      android:id="@+id/block_content_card"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:gravity="center_horizontal"
+      android:background="@drawable/overlay_content_card"
+      android:padding="16dp">
+
+      <FrameLayout
+        android:layout_width="104dp"
+        android:layout_height="104dp"
+        android:layout_marginBottom="12dp">
+
+        <FrameLayout
+          android:layout_width="104dp"
+          android:layout_height="104dp"
+          android:layout_gravity="center"
+          android:background="@drawable/circle_background">
+
+          <ImageView
+            android:id="@+id/block_app_icon"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter" />
+        </FrameLayout>
+
+        <ImageView
+          android:id="@+id/block_lock_badge"
+          android:layout_width="38dp"
+          android:layout_height="38dp"
+          android:layout_gravity="bottom|end"
+          android:background="@drawable/lock_badge_background"
+          android:padding="8dp"
+          android:src="@android:drawable/ic_lock_idle_lock"
+          android:tint="#FF6B6B" />
+      </FrameLayout>
+
+      <TextView
+        android:id="@+id/block_app_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="2"
+        android:text="Aplicación"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+      <TextView
+        android:id="@+id/block_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:text="Bloqueada"
+        android:textColor="#FF6B6B"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+      <LinearLayout
+        android:id="@+id/block_reason_chip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/overlay_reason_chip"
+        android:paddingLeft="10dp"
+        android:paddingTop="6dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+          android:id="@+id/block_reason"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:gravity="center"
+          android:text="Límite de tiempo alcanzado"
+          android:textColor="#FFCA28"
+          android:textSize="12sp"
+          android:textStyle="bold" />
+      </LinearLayout>
+
+      <TextView
+        android:id="@+id/block_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:text="La aplicación se cerrará automáticamente"
+        android:textColor="#E8E8E8"
+        android:textSize="13sp" />
+
+      <LinearLayout
+        android:id="@+id/block_countdown_box"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="#2A2A3E"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingLeft="16dp"
+        android:paddingTop="10dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="10dp">
+
+        <TextView
+          android:id="@+id/block_countdown_label"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="Cerrando en"
+          android:textColor="#BDBDBD"
+          android:textSize="10sp" />
+
+        <TextView
+          android:id="@+id/countdown_text"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="2dp"
+          android:text="5"
+          android:textColor="#FF6B6B"
+          android:textSize="34sp"
+          android:textStyle="bold" />
+
+        <TextView
+          android:id="@+id/block_countdown_unit"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="segundos"
+          android:textColor="#BDBDBD"
+          android:textSize="10sp" />
+      </LinearLayout>
+
+      <View
+        android:id="@+id/block_separator"
+        android:layout_width="56dp"
+        android:layout_height="2dp"
+        android:background="#FF6B6B" />
+
+      <TextView
+        android:id="@+id/block_footer_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:lineSpacingExtra="3dp"
+        android:text="Intenta de nuevo mañana o ajusta tu límite de tiempo"
+        android:textColor="#BDBDBD"
+        android:textSize="12sp" />
+
+      <TextView
+        android:id="@+id/block_date_range"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:lineSpacingExtra="3dp"
+        android:text=""
+        android:textColor="#9FA8DA"
+        android:textSize="11sp"
+        android:visibility="gone" />
+    </LinearLayout>
+  </LinearLayout>
+
+</FrameLayout>

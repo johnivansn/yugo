@@ -1,0 +1,349 @@
+package io.github.johnivansn.yugo.blocking
+
+import android.content.Context
+import android.content.pm.PackageManager
+import android.util.Log
+import io.github.johnivansn.yugo.database.AppDatabase
+import io.github.johnivansn.yugo.database.getDailyQuotaForDay
+import io.github.johnivansn.yugo.monitoring.ScheduleMonitor
+import io.github.johnivansn.yugo.notifications.PillNotificationHelper
+import io.github.johnivansn.yugo.rewards.EffectiveLimitCalculator
+import io.github.johnivansn.yugo.utils.AppUtils
+import java.text.SimpleDateFormat
+import java.util.*
+
+class BlockingEngine(private val context: Context) {
+  private val database = AppDatabase.getDatabase(context)
+  private val dateFormat = AppUtils.newDateFormat()
+  private val pillNotification = PillNotificationHelper(context)
+  private val scheduleMonitor = ScheduleMonitor()
+  private val limitCalculator = EffectiveLimitCalculator(database)
+  private val shortDateTimeFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+
+  sealed class BlockReason {
+    object TimeQuota : BlockReason()
+    object ScheduleBlocked : BlockReason()
+    object DateBlocked : BlockReason()
+    object Combined : BlockReason()
+  }
+
+  suspend fun shouldBlock(packageName: String): Boolean {
+    val block = database.appBlockDao().getByPackage(packageName)
+    val canEvaluateDirect = canEvaluateDirectBlocks(block)
+    val quotaBlocked = isQuotaBlocked(packageName, block)
+    val scheduleBlocked = canEvaluateDirect && isScheduleBlocked(packageName)
+    val dateBlocked = canEvaluateDirect && isDateBlocked(packageName)
+    return quotaBlocked || scheduleBlocked || dateBlocked
+  }
+
+  suspend fun shouldBlockSync(packageName: String): BlockReason? {
+    val block = database.appBlockDao().getByPackage(packageName)
+    val canEvaluateDirect = canEvaluateDirectBlocks(block)
+    val quotaBlocked = isQuotaBlocked(packageName, block)
+    val scheduleBlocked = canEvaluateDirect && isScheduleBlocked(packageName)
+    val dateBlocked = canEvaluateDirect && isDateBlocked(packageName)
+    val activeCount = listOf(quotaBlocked, scheduleBlocked, dateBlocked).count { it }
+
+    return when {
+      activeCount == 0 -> null
+      activeCount > 1 -> BlockReason.Combined
+      quotaBlocked -> BlockReason.TimeQuota
+      scheduleBlocked -> BlockReason.ScheduleBlocked
+      else -> BlockReason.DateBlocked
+    }
+  }
+
+  suspend fun isQuotaBlocked(packageName: String): Boolean {
+    val block = database.appBlockDao().getByPackage(packageName)
+    return isQuotaBlocked(packageName, block)
+  }
+
+  private suspend fun isQuotaBlocked(
+          packageName: String,
+          block: io.github.johnivansn.yugo.database.AppBlock?
+  ): Boolean {
+    block ?: return false
+    if (!block.isEnabled) return false
+    if (isExpired(block)) return false
+    val now = System.currentTimeMillis()
+    val today = dateFormat.format(Date())
+    val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+    val quotaMinutes =
+            if (block.limitType == "weekly") {
+              block.weeklyQuotaMinutes
+            } else {
+              block.getDailyQuotaForDay(dayOfWeek)
+            }
+
+    val effective =
+            limitCalculator.calculateForblock(block, now, quotaMinutes)
+    if (effective.hasUnlock) return false
+
+    if (effective.effectiveMinutes <= 0) return false
+
+    return if (block.limitType == "weekly") {
+      val weekStart =
+              AppUtils.getWeekStartDate(
+                      block.weeklyResetDay,
+                      block.weeklyResetHour,
+                      block.weeklyResetMinute,
+                      dateFormat
+              )
+      val weekUsages = database.dailyUsageDao().getUsageSince(packageName, weekStart)
+      val usedMinutes = weekUsages.sumOf { it.usedMinutes }
+      usedMinutes >= effective.effectiveMinutes
+    } else {
+      val usage = database.dailyUsageDao().getUsage(packageName, today) ?: return false
+      usage.usedMinutes >= effective.effectiveMinutes
+    }
+  }
+
+  suspend fun isScheduleBlocked(packageName: String): Boolean {
+    val schedules = database.appScheduleDao().getByPackage(packageName)
+    return scheduleMonitor.isCurrentlyBlocked(schedules)
+  }
+
+  suspend fun isDateBlocked(packageName: String): Boolean {
+    val now = System.currentTimeMillis()
+    val blocks = database.dateBlockDao().getEnabledByPackage(packageName)
+    return blocks.any { block ->
+      val startMillis = toDateTimeMillis(block.startDate, block.startHour, block.startMinute)
+      val endMillis = toDateTimeMillis(block.endDate, block.endHour, block.endMinute)
+      if (startMillis == null || endMillis == null) return@any false
+      now in startMillis..endMillis
+    }
+  }
+
+  suspend fun getDateBlockRemainingDays(packageName: String): Int? {
+    val now = System.currentTimeMillis()
+    val active =
+            database.dateBlockDao().getEnabledByPackage(packageName).filter { block ->
+              val startMillis =
+                      toDateTimeMillis(block.startDate, block.startHour, block.startMinute)
+              val endMillis = toDateTimeMillis(block.endDate, block.endHour, block.endMinute)
+              if (startMillis == null || endMillis == null) return@filter false
+              now in startMillis..endMillis
+            }
+    if (active.isEmpty()) return null
+
+    val minDays =
+            active.mapNotNull { block ->
+              val endMillis =
+                      toDateTimeMillis(block.endDate, block.endHour, block.endMinute)
+                              ?: return@mapNotNull null
+              val diffMillis = endMillis - now
+              (diffMillis / 86400000L).toInt().coerceAtLeast(0)
+            }.minOrNull()
+    return minDays
+  }
+
+  suspend fun getDateBlockRangeSummary(packageName: String): String? {
+    val now = System.currentTimeMillis()
+    val active =
+            database.dateBlockDao().getEnabledByPackage(packageName).filter { block ->
+              val startMillis =
+                      toDateTimeMillis(block.startDate, block.startHour, block.startMinute)
+              val endMillis = toDateTimeMillis(block.endDate, block.endHour, block.endMinute)
+              if (startMillis == null || endMillis == null) return@filter false
+              now in startMillis..endMillis
+            }
+    if (active.isEmpty()) return null
+
+    val earliestStartMillis =
+            active.mapNotNull {
+              toDateTimeMillis(it.startDate, it.startHour, it.startMinute)
+            }.minOrNull()
+                    ?: return null
+    val latestEndMillis =
+            active.mapNotNull {
+              toDateTimeMillis(it.endDate, it.endHour, it.endMinute)
+            }.maxOrNull()
+                    ?: return null
+    return "Del ${formatDateTime(earliestStartMillis)} al ${formatDateTime(latestEndMillis)}"
+  }
+
+  suspend fun getActiveDateBlockLabelSummary(packageName: String): String? {
+    val now = System.currentTimeMillis()
+    val active =
+            database.dateBlockDao().getEnabledByPackage(packageName).filter { block ->
+              val startMillis =
+                      toDateTimeMillis(block.startDate, block.startHour, block.startMinute)
+              val endMillis = toDateTimeMillis(block.endDate, block.endHour, block.endMinute)
+              if (startMillis == null || endMillis == null) return@filter false
+              now in startMillis..endMillis
+            }
+    if (active.isEmpty()) return null
+    val labels =
+            active
+                    .mapNotNull { it.label?.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .sorted()
+    if (labels.isEmpty()) return null
+    return if (labels.size == 1) {
+      "Etiqueta: ${labels.first()}"
+    } else {
+      "Etiquetas: ${labels.take(3).joinToString(", ")}"
+    }
+  }
+
+  suspend fun getActiveScheduleRangeSummary(packageName: String): String? {
+    val schedules = database.appScheduleDao().getByPackage(packageName)
+    if (schedules.isEmpty()) return null
+    val now = Calendar.getInstance()
+    val currentTimeMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+    val currentDayOfWeek = now.get(Calendar.DAY_OF_WEEK)
+    val active =
+            schedules
+                    .filter { it.isEnabled }
+                    .filter { schedule ->
+                      val dayBit = 1 shl (currentDayOfWeek - 1)
+                      val daysValue = schedule.daysOfWeek
+                      if ((daysValue and dayBit) == 0) return@filter false
+                      val startTimeMinutes = (schedule.startHour * 60) + schedule.startMinute
+                      val endTimeMinutes = (schedule.endHour * 60) + schedule.endMinute
+                      if (startTimeMinutes <= endTimeMinutes) {
+                        currentTimeMinutes >= startTimeMinutes && currentTimeMinutes < endTimeMinutes
+                      } else {
+                        currentTimeMinutes >= startTimeMinutes || currentTimeMinutes < endTimeMinutes
+                      }
+                    }
+                    .sortedWith(
+                            compareBy<io.github.johnivansn.yugo.database.AppSchedule>(
+                                            { it.startHour }
+                                    )
+                                    .thenBy { it.startMinute }
+                    )
+    val first = active.firstOrNull() ?: return null
+    return "Horario activo: ${formatTime(first.startHour, first.startMinute)} a ${formatTime(first.endHour, first.endMinute)}"
+  }
+
+  suspend fun getblockExpirySummary(packageName: String): String? {
+    val block = database.appBlockDao().getByPackage(packageName) ?: return null
+    val expiresAt = block.expiresAt ?: return null
+    if (expiresAt <= 0) return null
+    if (expiresAt <= System.currentTimeMillis()) return "Vencimiento: expirado"
+    return "Vence: ${shortDateTimeFormat.format(Date(expiresAt))}"
+  }
+
+  private fun toDateTimeMillis(dateValue: String, hour: Int, minute: Int): Long? {
+    val date = dateFormat.parse(dateValue) ?: return null
+    val cal = Calendar.getInstance().apply {
+      time = date
+      set(Calendar.HOUR_OF_DAY, hour)
+      set(Calendar.MINUTE, minute)
+      set(Calendar.SECOND, 0)
+      set(Calendar.MILLISECOND, 0)
+    }
+    return cal.timeInMillis
+  }
+
+  private fun formatDateTime(millis: Long): String {
+    val cal = Calendar.getInstance().apply { timeInMillis = millis }
+    val date = dateFormat.format(cal.time)
+    val hour = cal.get(Calendar.HOUR_OF_DAY)
+    val minute = cal.get(Calendar.MINUTE)
+    return "$date ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+  }
+
+  private fun formatTime(hour: Int, minute: Int): String {
+    return "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+  }
+
+  suspend fun blockApp(packageName: String, reason: BlockReason): Boolean {
+    val today = dateFormat.format(Date())
+    val usage = database.dailyUsageDao().getUsage(packageName, today) ?: return false
+    val block = database.appBlockDao().getByPackage(packageName) ?: return false
+
+    if (usage.isBlocked) return true
+
+    database.dailyUsageDao().update(usage.copy(isBlocked = true))
+
+    val notificationReason =
+            when (reason) {
+              BlockReason.TimeQuota -> PillNotificationHelper.BlockReason.QUOTA_EXCEEDED
+              BlockReason.ScheduleBlocked -> PillNotificationHelper.BlockReason.SCHEDULE_BLOCKED
+              BlockReason.DateBlocked -> PillNotificationHelper.BlockReason.DATE_BLOCKED
+              BlockReason.Combined -> PillNotificationHelper.BlockReason.MANUAL
+            }
+
+    pillNotification.notifyAppBlocked(block.appName, packageName, notificationReason)
+    Log.i(TAG, "$packageName blocked - reason: $reason")
+    return true
+  }
+
+  suspend fun isBlocked(packageName: String): Boolean {
+    val today = dateFormat.format(Date())
+    val usage = database.dailyUsageDao().getUsage(packageName, today)
+    return usage?.isBlocked ?: false
+  }
+
+  suspend fun unblockApp(packageName: String) {
+    val today = dateFormat.format(Date())
+    val usage = database.dailyUsageDao().getUsage(packageName, today) ?: return
+    if (usage.isBlocked) {
+      database.dailyUsageDao().update(usage.copy(isBlocked = false))
+      Log.i(TAG, "$packageName unblocked")
+    }
+  }
+
+  suspend fun getBlockedApps(): List<String> {
+    val today = dateFormat.format(Date())
+    val blocks = database.appBlockDao().getEnabled()
+    return blocks
+            .filter { r ->
+              if (isExpired(r)) return@filter false
+              val usage = database.dailyUsageDao().getUsage(r.packageName, today)
+              usage?.isBlocked == true
+            }
+            .map { it.packageName }
+  }
+
+  private fun isExpired(block: io.github.johnivansn.yugo.database.AppBlock): Boolean {
+    val expiresAt = block.expiresAt ?: return false
+    if (expiresAt <= 0) return false
+    return System.currentTimeMillis() > expiresAt
+  }
+
+  private fun canEvaluateDirectBlocks(
+          block: io.github.johnivansn.yugo.database.AppBlock?
+  ): Boolean {
+    if (block == null) return true
+    if (!block.isEnabled) return false
+    return !isExpired(block)
+  }
+
+  fun getAllAppsSync(): List<Pair<String, String>> {
+    return try {
+      val packages = mutableListOf<Pair<String, String>>()
+      val pm = context.packageManager
+      val installedApps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+
+      for (appInfo in installedApps) {
+        try {
+          val label = pm.getApplicationLabel(appInfo).toString()
+          packages.add(appInfo.packageName to label)
+        } catch (e: Exception) {
+          packages.add(appInfo.packageName to appInfo.packageName)
+        }
+      }
+
+      packages.sortedBy { it.second }
+    } catch (e: Exception) {
+      Log.e(TAG, "Error getting apps", e)
+      emptyList()
+    }
+  }
+
+  companion object {
+    private const val TAG = "BlockingEngine"
+  }
+}
+
+
+
+
+
+
+
+
